@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#f4f1ea" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="MÄDN" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Mensch ärgere dich nicht</title>
+  <style>
+    :root{
+      --bg:#f4f1ea;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --red:#dc2626;
+      --blue:#2563eb;
+      --green:#16a34a;
+      --yellow:#d4a017;
+      --line:#c9c5bc;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    body{min-height:100vh;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
+    .app{max-width:720px;margin:0 auto}
+    h1{font-size:24px;margin:14px 0 6px;text-align:center}
+    .sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px}
+    .panel{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:14px;margin:10px 0}
+    .toprow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    select,button{font:inherit;border-radius:12px;border:1px solid #d1d5db;background:#fff;padding:11px 14px}
+    button{font-weight:700;cursor:pointer}
+    button.primary{background:#111827;color:#fff;border-color:#111827}
+    button:disabled{opacity:.45}
+    .status{font-weight:700}
+    .turndot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+    .diceRow{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px}
+    .dice{width:64px;height:64px;border-radius:16px;border:2px solid #111827;display:grid;place-items:center;font-size:32px;font-weight:800;background:#fff}
+    .boardWrap{overflow:auto}
+    .board{
+      position:relative;
+      width:min(92vw,620px);
+      aspect-ratio:1/1;
+      margin:0 auto;
+      background:#fbfaf6;
+      border-radius:24px;
+      border:1px solid #ddd8cc;
+    }
+    .cell{
+      position:absolute;
+      width:6.1%;aspect-ratio:1/1;border-radius:50%;
+      border:1.5px solid var(--line);background:#fff;
+      transform:translate(-50%,-50%);
+      display:grid;place-items:center;
+      font-size:9px;color:#888;
+    }
+    .cell.red{background:#fee2e2;border-color:#fca5a5}
+    .cell.blue{background:#dbeafe;border-color:#93c5fd}
+    .cell.green{background:#dcfce7;border-color:#86efac}
+    .cell.yellow{background:#fef3c7;border-color:#fcd34d}
+    .homeBase{position:absolute;width:24%;aspect-ratio:1/1;border-radius:24px;border:2px solid rgba(0,0,0,.08)}
+    .homeBase.red{left:3%;top:3%;background:#fee2e2}
+    .homeBase.blue{right:3%;top:3%;background:#dbeafe}
+    .homeBase.green{right:3%;bottom:3%;background:#dcfce7}
+    .homeBase.yellow{left:3%;bottom:3%;background:#fef3c7}
+    .baseSlot{position:absolute;width:28%;aspect-ratio:1/1;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.12)}
+    .baseSlot:nth-child(1){left:12%;top:12%}.baseSlot:nth-child(2){right:12%;top:12%}
+    .baseSlot:nth-child(3){left:12%;bottom:12%}.baseSlot:nth-child(4){right:12%;bottom:12%}
+    .piece{
+      width:78%;height:78%;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);
+      cursor:pointer;position:relative;z-index:5
+    }
+    .piece.red{background:var(--red)} .piece.blue{background:var(--blue)}
+    .piece.green{background:var(--green)} .piece.yellow{background:var(--yellow)}
+    .piece.selectable{outline:4px solid rgba(17,24,39,.25);animation:pulse 1s infinite}
+    @keyframes pulse{50%{transform:scale(1.08)}}
+    .legend{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--muted)}
+    .legend span{display:flex;gap:5px;align-items:center}
+    .tiny{width:10px;height:10px;border-radius:50%}
+    .msg{min-height:22px;text-align:center;color:#374151;margin-top:7px}
+    .footer{font-size:12px;color:#777;text-align:center;padding:8px 0 18px}
+  </style>
+</head>
+<body>
+<div class="app">
+  <h1>Mensch ärgere dich nicht</h1>
+  <div class="sub">Simple Offline-PWA · 2–4 Spieler auf einem iPhone</div>
+
+  <div class="panel">
+    <div class="toprow">
+      <label>Spieler:
+        <select id="playerCount">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+        </select>
+      </label>
+      <button id="newGame">Neues Spiel</button>
+    </div>
+    <div class="diceRow">
+      <div class="dice" id="dice">–</div>
+      <button class="primary" id="roll">Würfeln</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="panel">
+    <div class="status" id="status"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="panel boardWrap">
+    <div class="board" id="board">
+      <div class="homeBase red" data-base="0">
+        <div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div>
+      </div>
+      <div class="homeBase blue" data-base="1">
+        <div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div>
+      </div>
+      <div class="homeBase green" data-base="2">
+        <div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div>
+      </div>
+      <div class="homeBase yellow" data-base="3">
+        <div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div><div class="baseSlot"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Vereinfachte Regeln: 6 zum Herauskommen, Schlagen erlaubt, bei 6 nochmals würfeln, exakt ins Ziel.</div>
+</div>
+
+<script>
+const COLORS = ["red","blue","green","yellow"];
+const NAMES = ["Rot","Blau","Grün","Gelb"];
+const CSS = ["#dc2626","#2563eb","#16a34a","#d4a017"];
+const START = [0,10,20,30];
+const TRACK_LEN = 40;
+const HOME_LEN = 4;
+
+let playerCount = 4;
+let players = [];
+let turn = 0;
+let rolled = null;
+let selectable = [];
+let gameOver = false;
+
+const board = document.getElementById("board");
+const diceEl = document.getElementById("dice");
+const msg = document.getElementById("msg");
+const status = document.getElementById("status");
+const legend = document.getElementById("legend");
+const rollBtn = document.getElementById("roll");
+
+function pointOnSquare(t){
+  const m = 7.5, s = 85;
+  if(t < 0.25) return [m + (t/0.25)*s, m];
+  if(t < 0.5) return [m+s, m + ((t-.25)/.25)*s];
+  if(t < .75) return [m+s - ((t-.5)/.25)*s, m+s];
+  return [m, m+s - ((t-.75)/.25)*s];
+}
+
+function makeBoard(){
+  document.querySelectorAll(".cell").forEach(e=>e.remove());
+  for(let i=0;i<TRACK_LEN;i++){
+    const [x,y] = pointOnSquare(i/TRACK_LEN);
+    const c = document.createElement("div");
+    c.className="cell";
+    if(i===START[0]) c.classList.add("red");
+    if(i===START[1]) c.classList.add("blue");
+    if(i===START[2]) c.classList.add("green");
+    if(i===START[3]) c.classList.add("yellow");
+    c.style.left=x+"%"; c.style.top=y+"%";
+    c.dataset.track=i;
+    board.appendChild(c);
+  }
+  const center = [50,50];
+  const endPts = [
+    [[32,50],[38,50],[44,50],[50,50]],
+    [[50,32],[50,38],[50,44],[50,50]],
+    [[68,50],[62,50],[56,50],[50,50]],
+    [[50,68],[50,62],[50,56],[50,50]]
+  ];
+  endPts.forEach((arr,p)=>arr.forEach((xy,h)=>{
+    const c=document.createElement("div");
+    c.className="cell "+COLORS[p];
+    c.style.left=xy[0]+"%"; c.style.top=xy[1]+"%";
+    c.dataset.home=p+"-"+h;
+    board.appendChild(c);
+  }));
+}
+
+function init(){
+  playerCount = +document.getElementById("playerCount").value;
+  players = Array.from({length:playerCount},(_,p)=>({
+    pieces:Array.from({length:4},()=>({steps:-1}))
+  }));
+  turn=0; rolled=null; selectable=[]; gameOver=false;
+  diceEl.textContent="–"; msg.textContent="Rot beginnt.";
+  render(); save();
+}
+
+function current(){ return players[turn]; }
+
+function legalMoves(p, roll){
+  const out=[];
+  p.pieces.forEach((pc,i)=>{
+    if(pc.steps===44) return;
+    if(pc.steps===-1){
+      if(roll===6) out.push(i);
+    } else {
+      if(pc.steps + roll <= 43) out.push(i);
+    }
+  });
+  return out;
+}
+
+function globalTrackPos(playerIndex, steps){
+  return (START[playerIndex] + steps) % TRACK_LEN;
+}
+
+function roll(){
+  if(gameOver || rolled!==null) return;
+  rolled = Math.floor(Math.random()*6)+1;
+  diceEl.textContent=rolled;
+  selectable = legalMoves(current(), rolled);
+  if(selectable.length===0){
+    msg.textContent = "Kein Zug möglich.";
+    setTimeout(()=>finishTurn(),500);
+  }else{
+    msg.textContent = "Figur antippen.";
+    render();
+  }
+}
+
+function movePiece(pi){
+  if(!selectable.includes(pi) || rolled===null) return;
+  const pc=current().pieces[pi];
+  if(pc.steps===-1) pc.steps=0;
+  else pc.steps += rolled;
+
+  if(pc.steps < TRACK_LEN){
+    const gp = globalTrackPos(turn, pc.steps);
+    for(let op=0;op<playerCount;op++){
+      if(op===turn) continue;
+      players[op].pieces.forEach(other=>{
+        if(other.steps>=0 && other.steps<TRACK_LEN && globalTrackPos(op,other.steps)===gp){
+          other.steps=-1;
+          msg.textContent = NAMES[turn]+" schlägt "+NAMES[op]+"!";
+        }
+      });
+    }
+  }
+
+  if(current().pieces.every(x=>x.steps>=40)){
+    gameOver=true;
+    msg.textContent="🎉 "+NAMES[turn]+" gewinnt!";
+    render(); save(); return;
+  }
+
+  const extra = rolled===6;
+  rolled=null; selectable=[];
+  diceEl.textContent="–";
+  if(extra){
+    msg.textContent += (msg.textContent?" ":"")+"Noch einmal würfeln.";
+    render(); save();
+  } else {
+    turn=(turn+1)%playerCount;
+    msg.textContent=NAMES[turn]+" ist dran.";
+    render(); save();
+  }
+}
+
+function finishTurn(){
+  const extra = rolled===6;
+  rolled=null; selectable=[];
+  diceEl.textContent="–";
+  if(!extra) turn=(turn+1)%playerCount;
+  msg.textContent = extra ? "Noch einmal würfeln." : NAMES[turn]+" ist dran.";
+  render(); save();
+}
+
+function baseSlotEl(p, idx){
+  const base = document.querySelector('.homeBase[data-base="'+p+'"]');
+  return base.querySelectorAll(".baseSlot")[idx];
+}
+
+function clearPieces(){
+  document.querySelectorAll(".piece").forEach(e=>e.remove());
+}
+
+function render(){
+  clearPieces();
+  status.innerHTML = '<span class="turndot" style="background:'+CSS[turn]+'"></span>'+NAMES[turn]+' ist dran';
+  legend.innerHTML = Array.from({length:playerCount},(_,i)=>
+    '<span><i class="tiny" style="background:'+CSS[i]+'"></i>'+NAMES[i]+'</span>'
+  ).join("");
+
+  players.forEach((pl,p)=>{
+    pl.pieces.forEach((pc,i)=>{
+      const piece=document.createElement("div");
+      piece.className="piece "+COLORS[p]+(p===turn && selectable.includes(i)?" selectable":"");
+      piece.title=NAMES[p]+" Figur "+(i+1);
+      piece.onclick=()=>{ if(p===turn) movePiece(i); };
+
+      let target=null;
+      if(pc.steps===-1){
+        target=baseSlotEl(p,i);
+      } else if(pc.steps < 40){
+        const pos=globalTrackPos(p,pc.steps);
+        target=document.querySelector('.cell[data-track="'+pos+'"]');
+      } else {
+        const h=pc.steps-40;
+        target=document.querySelector('.cell[data-home="'+p+'-'+h+'"]');
+      }
+      if(target) target.appendChild(piece);
+    });
+  });
+
+  rollBtn.disabled = gameOver || rolled!==null;
+}
+
+function save(){
+  localStorage.setItem("maedn", JSON.stringify({playerCount,players,turn,gameOver}));
+}
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem("maedn"));
+    if(!s) return false;
+    playerCount=s.playerCount; players=s.players; turn=s.turn||0; gameOver=!!s.gameOver;
+    document.getElementById("playerCount").value=playerCount;
+    rolled=null; selectable=[]; diceEl.textContent="–";
+    msg.textContent=gameOver?"Spiel beendet. Neues Spiel starten.":NAMES[turn]+" ist dran.";
+    render();
+    return true;
+  }catch(e){return false;}
+}
+
+document.getElementById("newGame").addEventListener("click",init);
+rollBtn.addEventListener("click",roll);
+
+makeBoard();
+if(!load()) init();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
